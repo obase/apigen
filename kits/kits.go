@@ -32,3 +32,20 @@ func GetTpl(tpl *template.Template, parms interface{}) string {
 	}
 	return ret
 }
+
+func IsExist(path string) bool {
+	fi, err := os.Stat(path)
+	if fi != nil || os.IsExist(err) {
+		return true
+	}
+	return false
+}
+
+func IsDir(path string) bool {
+	fi, err := os.Stat(path)
+	if fi == nil && os.IsNotExist(err) {
+		return false
+	}
+	return fi.IsDir()
+}
+
