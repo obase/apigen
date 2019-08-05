@@ -1,6 +1,7 @@
 package main
 
 import (
+	"bufio"
 	"bytes"
 	"crypto/md5"
 	"encoding/hex"
@@ -88,7 +89,7 @@ func genmd5sum(path string) error {
 	defer file.Close()
 
 	h := md5.New()
-	io.Copy(h, file)
+	io.Copy(bufio.NewWriter(h), bufio.NewReader(file))
 	md5sum := hex.EncodeToString(h.Sum(nil))
 	sumfile, err := os.OpenFile(path+".md5sum", os.O_CREATE|os.O_TRUNC|os.O_WRONLY, 0666)
 	if err != nil {
@@ -153,7 +154,7 @@ func checkmd5sum(url string, path string) bool {
 	if rsp.StatusCode < 200 || rsp.StatusCode >= 400 {
 		return false
 	}
-	data, err := ioutil.ReadAll(rsp.Body)
+	data, err := ioutil.ReadAll(bufio.NewReader(rsp.Body))
 	if err != nil {
 		return false
 	}
@@ -166,7 +167,7 @@ func checkmd5sum(url string, path string) bool {
 	defer file.Close()
 
 	h := md5.New()
-	_, err = io.Copy(h, file)
+	_, err = io.Copy(bufio.NewWriter(h), bufio.NewReader(file))
 	if err != nil {
 		return false
 	}
@@ -204,7 +205,7 @@ func download(url string, path string) {
 	}
 	defer file.Close()
 
-	_, err = io.Copy(file, rsp.Body)
+	_, err = io.Copy(bufio.NewWriter(file), bufio.NewReader(rsp.Body))
 	if err != nil {
 		kits.Errorf("write file error: %v, %v", path, err)
 		return
