@@ -31,7 +31,7 @@ func main() {
 	flag.Parse()
 
 	if help {
-		fmt.Fprintf(os.Stdout, "Usage: %v [-help] [-version] [-parent <dir>] [-update <url>]\n", filepath.Base(os.Args[0]))
+		fmt.Fprintf(os.Stdout, "Usage: %v [-help] [-version] [-parent <dir>] [-update <url>] [-ipaths <paths>]\n", filepath.Base(os.Args[0]))
 		flag.CommandLine.SetOutput(os.Stdout)
 		flag.PrintDefaults()
 		return
