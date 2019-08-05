@@ -46,7 +46,7 @@ func main() {
 	if md5sum {
 		root, _ := os.Getwd()
 		filepath.Walk(root, func(path string, info os.FileInfo, err error) error {
-			if !info.IsDir() && !strings.HasPrefix(info.Name(), ".") {
+			if !info.IsDir() && !strings.HasPrefix(info.Name(), ".") && !strings.HasSuffix(info.Name(), ".md5sum") {
 				genmd5sum(path)
 			}
 			return nil
