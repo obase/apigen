@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"github.com/obase/apigen/kits"
 	"io"
+	"net/http"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -69,7 +70,73 @@ func main() {
 - protoc-gen-api.exe
 - github.com/obase/api/x.proto
 */
+const DEFAULT_SERVER = "http://obase.github.io"
+const PATTERN_RESOURCE = "/apigen/%s/%s"
+
+var resources = []string{
+	"protoc",
+	"protoc-gen-api",
+	"version",
+	"github.com/obase/api/x.proto",
+	"google/protobuf/descriptor.proto",
+}
+
 func updatemd(metadir string, server string) {
+	if !kits.IsDir(metadir) {
+		if err := os.MkdirAll(metadir, os.ModePerm); err != nil {
+			kits.Errorf("mkdir metadir failed: %v, %v", metadir, err)
+			return
+		}
+	}
+	if server == "" {
+		server = DEFAULT_SERVER
+	}
+	for _, rsc := range resources {
+		// windows需要添加扩展名
+		if runtime.GOOS == "windows" && strings.HasPrefix(rsc, "protoc") {
+			rsc = rsc + ".exe"
+		}
+		url := server + fmt.Sprintf(PATTERN_RESOURCE, runtime.GOOS, rsc)
+		path := filepath.Join(metadir, rsc)
+		kits.Infof("download %s to %s", url, path)
+		download(url, path)
+	}
+}
+
+func download(url string, path string) {
+
+	rsp, err := http.Get(url)
+	if err != nil {
+		kits.Errorf("http get error: %v, %v", url, err)
+		return
+	}
+	defer rsp.Body.Close()
+
+	if rsp.StatusCode >= 400 || rsp.StatusCode < 200 {
+		kits.Errorf("http get error: %v, %v", url, rsp.StatusCode)
+		return
+	}
+
+	dir := filepath.Dir(path)
+	if !kits.IsExist(dir) {
+		err = os.MkdirAll(dir, os.ModePerm)
+		if err != nil {
+			kits.Errorf("mkdir all error: %v, %v", dir, err)
+			return
+		}
+	}
+	file, err := os.OpenFile(path, os.O_CREATE|os.O_TRUNC|os.O_WRONLY, 0666)
+	if err != nil {
+		kits.Errorf("open file error: %v, %v", path, err)
+		return
+	}
+	defer file.Close()
+
+	_, err = io.Copy(file, rsp.Body)
+	if err != nil {
+		kits.Errorf("write file error: %v, %v", path, err)
+		return
+	}
 
 }
 
