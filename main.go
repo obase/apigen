@@ -48,7 +48,7 @@ func main() {
 		return
 	}
 	if !kits.IsDir(metadir) {
-		kits.Infof("missing metadir: %v", metadir)
+		kits.Errorf("missing metadir: %v", metadir)
 		kits.Infof(`please "apigen -update" to create: %v`, metadir)
 		return
 	}
