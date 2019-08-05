@@ -101,7 +101,7 @@ func generate(metadir string, parent string) {
 		buf.WriteRune(os.PathSeparator)
 		buf.WriteString("protoc")
 		buf.WriteByte(SPACE);
-		buf.WriteString("--plugin=protoc-gen-go=")
+		buf.WriteString("--plugin=protoc-gen-api=")
 		buf.WriteString(metadir)
 		buf.WriteRune(os.PathSeparator)
 		buf.WriteString("protoc-gen-api")
@@ -109,7 +109,7 @@ func generate(metadir string, parent string) {
 			buf.WriteString(".exe")
 		}
 		buf.WriteByte(SPACE)
-		buf.WriteString("--go_out=plugins=grpc+apix:")
+		buf.WriteString("--api_out=plugins=grpc+apix:")
 		buf.WriteString(apidir)
 		buf.WriteByte(SPACE)
 		buf.WriteString("--proto_path=")
