@@ -9,6 +9,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"runtime"
 	"strings"
 )
 
@@ -64,9 +65,8 @@ func main() {
 更新meta目录:
 - version
 - protoc
-- protoc-gen-go
+- protoc-gen-api.exe
 - github.com/obase/api/x.proto
-- google/protobuf/descriptor.proto
 */
 func updatemd(metadir string, server string) {
 
@@ -104,7 +104,10 @@ func generate(metadir string, parent string) {
 		buf.WriteString("--plugin=protoc-gen-go=")
 		buf.WriteString(metadir)
 		buf.WriteRune(os.PathSeparator)
-		buf.WriteString("protoc-gen-go")
+		buf.WriteString("protoc-gen-api")
+		if runtime.GOOS == "windows" {
+			buf.WriteString(".exe")
+		}
 		buf.WriteByte(SPACE)
 		buf.WriteString("--go_out=plugins=grpc+apix:")
 		buf.WriteString(apidir)
