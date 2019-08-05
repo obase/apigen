@@ -2,10 +2,13 @@ package main
 
 import (
 	"bytes"
+	"crypto/md5"
+	"encoding/hex"
 	"flag"
 	"fmt"
 	"github.com/obase/apigen/kits"
 	"io"
+	"io/ioutil"
 	"net/http"
 	"os"
 	"os/exec"
@@ -21,9 +24,11 @@ var parent string
 var update bool
 var help bool
 var version bool
+var md5sum bool
 
 func main() {
 
+	flag.BoolVar(&md5sum, "md5sum", false, "calculate and generate md5sum")
 	flag.StringVar(&ipaths, "ipaths", "", "-IPATH directory, multiple values separate by comma ','")
 	flag.StringVar(&parent, "parent", "", "parent directory")
 	flag.BoolVar(&update, "update", false, "update or not")
@@ -35,6 +40,17 @@ func main() {
 		fmt.Fprintf(os.Stdout, "Usage: %v [-help] [-version] [-update] [-parent <dir>] [-ipaths <paths>]\n", filepath.Base(os.Args[0]))
 		flag.CommandLine.SetOutput(os.Stdout)
 		flag.PrintDefaults()
+		return
+	}
+
+	if md5sum {
+		root, _ := os.Getwd()
+		filepath.Walk(root, func(path string, info os.FileInfo, err error) error {
+			if !info.IsDir() && !strings.HasPrefix(info.Name(), ".") {
+				genmd5sum(path)
+			}
+			return nil
+		})
 		return
 	}
 	exepath, err := exec.LookPath(os.Args[0])
@@ -62,6 +78,26 @@ func main() {
 	}
 	generate(metadir, parent, ipaths)
 
+}
+
+func genmd5sum(path string) error {
+	file, err := os.Open(path)
+	if err != nil {
+		return err
+	}
+	defer file.Close()
+
+	h := md5.New()
+	io.Copy(h, file)
+	md5sum := hex.EncodeToString(h.Sum(nil))
+	sumfile, err := os.OpenFile(path+".md5sum", os.O_CREATE|os.O_TRUNC|os.O_WRONLY, 0666)
+	if err != nil {
+		return err
+	}
+	defer sumfile.Close()
+	sumfile.WriteString(md5sum)
+
+	return nil
 }
 
 /*
@@ -97,9 +133,46 @@ func updatemd(metadir string) {
 		}
 		url := PROXY_SERVER + fmt.Sprintf(PATTERN_RESOURCE, runtime.GOOS, rsc)
 		path := filepath.Join(metadir, rsc)
-		kits.Infof("download %s to %s, waiting......", url, path)
-		download(url, path)
+		if !checkmd5sum(url, path) {
+			kits.Infof("download %s to %s, waiting......", url, path)
+			download(url, path)
+		}
 	}
+}
+
+func checkmd5sum(url string, path string) bool {
+	if !kits.IsExist(path) {
+		return false
+	}
+	rsp, err := http.Get(url + ".md5sum")
+	if err != nil {
+		return false
+	}
+	defer rsp.Body.Close()
+
+	if rsp.StatusCode < 200 || rsp.StatusCode >= 400 {
+		return false
+	}
+	data, err := ioutil.ReadAll(rsp.Body)
+	if err != nil {
+		return false
+	}
+	md5sum1 := strings.TrimSpace(string(data))
+
+	file, err := os.Open(path)
+	if err != nil {
+		return false
+	}
+	defer file.Close()
+
+	h := md5.New()
+	_, err = io.Copy(h, file)
+	if err != nil {
+		return false
+	}
+	md5sum2 := hex.EncodeToString(h.Sum(nil))
+
+	return md5sum1 == md5sum2
 }
 
 func download(url string, path string) {
