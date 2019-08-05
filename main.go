@@ -48,7 +48,7 @@ func main() {
 		return
 	}
 	if !kits.IsDir(metadir) {
-		kits.Infof(`Please execute "apigen -update <url>" to create/update metadir: %v`, metadir)
+		kits.Infof(`Please execute "apigen -update" to create/update metadir: %v`, metadir)
 		return
 	}
 	if version {
