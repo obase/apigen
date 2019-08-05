@@ -70,7 +70,7 @@ func main() {
 - protoc-gen-api.exe
 - github.com/obase/api/x.proto
 */
-var PROXY_SERVER = kits.Getenv("PROXY_SERVER", "https://obase.github.io")
+var PROXY_SERVER = kits.Getenv("PROXY_SERVER", "http://obase.github.io")
 
 const PATTERN_RESOURCE = "/apigen/%s/%s"
 
