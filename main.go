@@ -15,6 +15,7 @@ import (
 
 const METADIR = ".apigen"
 
+var ipaths string
 var parent string
 var update string
 var help bool
@@ -22,6 +23,7 @@ var version bool
 
 func main() {
 
+	flag.StringVar(&ipaths, "ipaths", "", "-IPATH directory, multiple values separate by comma ','")
 	flag.StringVar(&parent, "parent", "", "parent directory")
 	flag.StringVar(&update, "update", "", "update or not")
 	flag.BoolVar(&help, "help", false, "help information")
@@ -56,7 +58,7 @@ func main() {
 	if parent == "" {
 		parent, _ = os.Getwd()
 	}
-	generate(metadir, parent)
+	generate(metadir, parent, ipaths)
 
 }
 
@@ -75,21 +77,21 @@ func updatemd(metadir string, server string) {
 创建proto文件
 <metadir>/protoc --plugin=protoc-gen-go=<metadir>/proto-gen-go --go_out=plugins=grpc+apix:. --proto_path=<metadir> --proto_path=api xxx.proto yyy.proto
 */
-func generate(metadir string, parent string) {
+func generate(metadir string, parent string, ipaths string) {
 	apidir := filepath.Join(parent, "api")
 	kits.Infof("path: %v, scanning......", apidir)
 	if !kits.IsDir(apidir) {
 		return
 	}
 	// 生成命令行及参数
-	cmdname, cmdargs, protoidx := command(metadir, apidir)
+	cmdname, cmdargs, protoidx := command(metadir, apidir, ipaths)
 	filepath.Walk(apidir, func(path string, info os.FileInfo, err error) error {
 		if !info.IsDir() && strings.HasSuffix(info.Name(), ".proto") {
 			if relpath, err := filepath.Rel(apidir, path); err == nil {
 				// 1. 删除旧的go文件
-				gofile := path[:len(path)-6]+".pb.go"
+				gofile := path[:len(path)-6] + ".pb.go"
 				if kits.IsExist(gofile) {
-					_  = os.Remove(gofile)
+					_ = os.Remove(gofile)
 				}
 				// 2. 创建新的go文件
 				proto := strings.ReplaceAll(relpath, "\\", "/")
@@ -109,7 +111,7 @@ func generate(metadir string, parent string) {
 }
 
 // <metadir>/protoc --plugin=protoc-gen-go=<metadir>/proto-gen-go --go_out=plugins=grpc+apix:<apidir> --proto_path=<metadir> --proto_path=<apidir> xxx.proto yyy.proto
-func command(metadir string, apidir string) (cmd string, args []string, last int) {
+func command(metadir string, apidir string, ipaths string) (cmd string, args []string, last int) {
 	args = make([]string, 0, 5)
 
 	// 一次性分配
@@ -135,6 +137,15 @@ func command(metadir string, apidir string) (cmd string, args []string, last int
 	buf.WriteString("--api_out=plugins=grpc+apix:")
 	buf.WriteString(apidir)
 	args = append(args, buf.String())
+
+	if ipaths != "" {
+		for _, ipath := range strings.Split(ipaths, ",") {
+			buf.Reset()
+			buf.WriteString("--proto_path=")
+			buf.WriteString(ipath)
+			args = append(args, buf.String())
+		}
+	}
 
 	buf.Reset()
 	buf.WriteString("--proto_path=")
