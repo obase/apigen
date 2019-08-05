@@ -18,7 +18,7 @@ const METADIR = ".apigen"
 
 var ipaths string
 var parent string
-var update string
+var update bool
 var help bool
 var version bool
 
@@ -26,13 +26,13 @@ func main() {
 
 	flag.StringVar(&ipaths, "ipaths", "", "-IPATH directory, multiple values separate by comma ','")
 	flag.StringVar(&parent, "parent", "", "parent directory")
-	flag.StringVar(&update, "update", "", "update or not")
+	flag.BoolVar(&update, "update", false, "update or not")
 	flag.BoolVar(&help, "help", false, "help information")
 	flag.BoolVar(&version, "version", false, "metadir version")
 	flag.Parse()
 
 	if help {
-		fmt.Fprintf(os.Stdout, "Usage: %v [-help] [-version] [-parent <dir>] [-update <url>] [-ipaths <paths>]\n", filepath.Base(os.Args[0]))
+		fmt.Fprintf(os.Stdout, "Usage: %v [-help] [-version] [-update] [-parent <dir>] [-ipaths <paths>]\n", filepath.Base(os.Args[0]))
 		flag.CommandLine.SetOutput(os.Stdout)
 		flag.PrintDefaults()
 		return
@@ -43,8 +43,8 @@ func main() {
 		return
 	}
 	metadir := filepath.Join(filepath.Dir(exepath), METADIR)
-	if update != "" {
-		updatemd(metadir, update)
+	if update {
+		updatemd(metadir)
 		return
 	}
 	if !kits.IsDir(metadir) {
@@ -70,7 +70,8 @@ func main() {
 - protoc-gen-api.exe
 - github.com/obase/api/x.proto
 */
-const DEFAULT_SERVER = "http://obase.github.io"
+var PROXY_SERVER = kits.Getenv("PROXY_SERVER", "http://obase.github.io")
+
 const PATTERN_RESOURCE = "/apigen/%s/%s"
 
 var resources = []string{
@@ -81,22 +82,19 @@ var resources = []string{
 	"google/protobuf/descriptor.proto",
 }
 
-func updatemd(metadir string, server string) {
+func updatemd(metadir string) {
 	if !kits.IsDir(metadir) {
 		if err := os.MkdirAll(metadir, os.ModePerm); err != nil {
 			kits.Errorf("mkdir metadir failed: %v, %v", metadir, err)
 			return
 		}
 	}
-	if server == "" {
-		server = DEFAULT_SERVER
-	}
 	for _, rsc := range resources {
 		// windows需要添加扩展名
 		if runtime.GOOS == "windows" && strings.HasPrefix(rsc, "protoc") {
 			rsc = rsc + ".exe"
 		}
-		url := server + fmt.Sprintf(PATTERN_RESOURCE, runtime.GOOS, rsc)
+		url := PROXY_SERVER + fmt.Sprintf(PATTERN_RESOURCE, runtime.GOOS, rsc)
 		path := filepath.Join(metadir, rsc)
 		kits.Infof("download %s to %s", url, path)
 		download(url, path)
