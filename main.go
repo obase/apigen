@@ -96,7 +96,7 @@ func updatemd(metadir string) {
 		}
 		url := PROXY_SERVER + fmt.Sprintf(PATTERN_RESOURCE, runtime.GOOS, rsc)
 		path := filepath.Join(metadir, rsc)
-		kits.Infof("download %s to %s", url, path)
+		kits.Infof("download %s(%s), waiting......", path, url)
 		download(url, path)
 	}
 }
